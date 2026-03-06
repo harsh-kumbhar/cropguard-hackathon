@@ -1,42 +1,239 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* --- GLOBAL THEME --- */
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0e1117; /* Deep Streamlit Dark */
+    color: #fafafa;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* --- HEADER --- */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #262730;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.main-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
 }
 
-.card {
-  padding: 2em;
+.subtitle {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #888;
 }
 
-.read-the-docs {
-  color: #888;
+.status-blink {
+    color: #00ff00;
+    font-weight: bold;
+    animation: blinker 2s linear infinite;
+}
+
+@keyframes blinker {
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.tactical-select {
+    background-color: #262730;
+    color: white;
+    border: 1px solid #444;
+    padding: 8px 15px;
+    border-radius: 4px;
+    margin-left: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* --- UPLOAD BOX --- */
+.upload-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.upload-box {
+    display: block;
+    background-color: #1e2127;
+    border: 2px dashed #444;
+    border-radius: 10px;
+    padding: 40px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+    .upload-box:hover {
+        border-color: #ff4b4b;
+        background-color: #262a33;
+    }
+
+.upload-icon {
+    font-size: 30px;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.upload-text {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.upload-subtext {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.loading-text {
+    color: #ffcc00;
+    font-weight: bold;
+    margin-top: 15px;
+    letter-spacing: 2px;
+}
+
+/* --- RESULTS GRID --- */
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+@media (max-width: 800px) {
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.image-panel, .metrics-panel {
+    background-color: #1e2127;
+    border: 1px solid #262730;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.panel-header {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+.analyzed-image {
+    width: 100%;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+/* --- METRICS STYLING --- */
+.metric-card {
+    background-color: #262730;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.metric-label {
+    font-size: 14px;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+.metric-value {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.stats-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    flex: 1;
+    background-color: #262730;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+    .stat-box.dark {
+        background-color: #0e1117;
+        border: 1px solid #333;
+    }
+
+.stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+
+/* --- ACTION PLAN --- */
+.action-plan-box {
+    background-color: rgba(255, 75, 75, 0.1);
+    border: 1px solid rgba(255, 75, 75, 0.3);
+    padding: 15px;
+    border-radius: 6px;
+}
+
+    .action-plan-box h3 {
+        margin: 0 0 10px 0;
+        color: #ff4b4b;
+        font-size: 16px;
+    }
+
+/* --- CORE STACK (DEV MODE) --- */
+.core-stack-box {
+    background-color: #0e1117;
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+    .core-stack-box h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #888;
+    }
+
+.stack-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: monospace;
+    color: #00ff00;
+    font-size: 13px;
+}
+
+    .stack-list li {
+        margin-bottom: 5px;
+    }
+
+.chart-container {
+    background-color: #0e1117;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
 }

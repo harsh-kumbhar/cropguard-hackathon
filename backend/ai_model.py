@@ -8,7 +8,7 @@ import io
 
 # Roboflow Configuration
 API_KEY = "nnY4KgvEnxAv65vf8jFC"
-MODEL_ID = "stem-project-7z7kd/4"
+MODEL_ID = "stem-project-7z7kd/8"
 INFERENCE_URL = f"https://detect.roboflow.com/{MODEL_ID}?api_key={API_KEY}"
 
 

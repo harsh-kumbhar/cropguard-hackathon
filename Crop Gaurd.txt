@@ -1,0 +1,1234 @@
+import streamlit as st
+import numpy as np
+from PIL import Image
+import cv2
+import time
+import base64
+import io
+import random
+import plotly.graph_objects as go
+
+from utils import resize_image
+from cv_engine import analyze_crop
+
+# ─────────────────────────────────────────────
+# Multi-Language Engine
+# ─────────────────────────────────────────────
+TRANSLATIONS = {
+    "English": {
+        "page_title": "CropIQ - Precision Agri-Vision",
+        "app_name_p1": "Crop",
+        "app_name_p2": "IQ",
+        "hero_badge": "Tactical Intelligence · CropIQ V4",
+        "hero_subtitle": "Autonomous Field Surveillance & Damage Assessment",
+        "system_status": "OVERSIGHT ACTIVE",
+        "modules": "Uplink: Satellite · Drone · Ground-Sensor",
+        "section_image_input": "Data Acquisition",
+        "section_command_center": "Tactical Tactical Command Center",
+        "live_drone_feed": " ️ Tactical Overwatch",
+        "optics_lock": "TARGET LOCK",
+        "spatial_analysis_matrix": "  Sector-Grid Matrix",
+        "core_assessment": "STRATEGIC EVALUATION",
+        "sys_confidence": "SYS_PRECISION",
+        "latency": "PULSE",
+        "critical_risk": "Vulnerability",
+        "struct_angle": "Inclination",
+        "bio_coverage": "Bio-Density",
+        "stem_vectors": "Vector Nodes",
+        "volatility_trend": "RISK VOLATILITY INDEX",
+        "ai_diagnostics": "👁️ Neural Diagnostic Stream",
+        "ai_confidence": "Neural Integrity",
+        "upright_ratio": "Stability Index",
+        "edge_density": "Fractal Density",
+        "ai_plan": "Strategic Directive",
+        "crop_stability_distribution": "Structural Integrity Curve",
+        "Moderate Risk": "Alert Level: Yellow",
+        "Severe Danger": "Alert Level: Red",
+        "footer_text": "CropIQ Quantum Engine · v4.1.0",
+        "upload_prompt": "Initialize sensor scan (Select Image)",
+        "tech_stack": "Core Stack",
+        "detection_modes": "Observation Modes",
+        "output_metrics": "Tactical Telemetry",
+        "hsv_filter": "CHROMA_MASK",
+        "thermal_density": "THERMAL_HEATMAP",
+        "edge_topology": "TOPOLOGICAL_SCAN",
+        "structural_lattice": "STRUCTURAL_MESH",
+        "agrobot_header": "CropIQ Alpha",
+        "weather_wind": "Wind Velocity",
+        "weather_hum": "Soil Moisture",
+        "weather_temp": "Thermal Index",
+        "analysis_depth": "Neural Scanning Depth",
+        "gen_report": "GENERATE STRATEGIC REPORT",
+        "ai_briefing": "LIVE AI BRIEFING",
+        "emergency_support": "IMMEDIATE: Structural Reinforcement Required.",
+        "emergency_text": "Deploy mechanical bracing to critical sectors to prevent total crop collapse.",
+        "nutrition_intervention": "Metabolic Reset.",
+        "nutrition_text": "Suspend nitrogen input; trigger calcium-magnesium infusion for cell wall hardening.",
+        "water_mgmt": "Hydro-Bypass.",
+        "water_text": "Active drainage required in Sector B3/C1 to stabilize root-anchoring substrates.",
+        "growth_reg": "Statute Regulation.",
+        "growth_text": "Balance PGR application to optimize stem-to-foliage weight ratio.",
+        "potassium_boost": "K-Fortification.",
+        "potassium_text": "Execute foliar K-spray to enhance osmotic pressure and stem rigidity.",
+        "observation_phase": "Surveillance Phase.",
+        "observation_text": "Continuous drone-loop monitoring active in Sector-specific quadrants.",
+        "optimal_health": "Optimal Health Maintained.",
+        "optimal_text": "The crop matrix shows excellent structural integrity with robust vertical growth patterns.",
+        "standard_nutrition": "Standard Nutrition Protocol.",
+        "nutrition_continue": "Continue standard NPK fertilization schedule. No defensive alterations are required at this stage.",
+        "preventive": "Preventive Measure.",
+        "preventive_text": "Apply prophylactic silicate treatments bi-weekly; silicon deposits in epidermal cells will safeguard against future stress."
+    },
+    "Hindi (हिंदी)": {
+        "page_title": "CropIQ - उन्नत कृषि-दृष्टि",
+        "app_name_p1": "Crop",
+        "app_name_p2": "IQ",
+        "hero_badge": "सामरिक बुद्धिमत्ता · CropIQ V4",
+        "hero_subtitle": "स्वायत्त क्षेत्र निगरानी और क्षति मूल्यांकन",
+        "system_status": "निगरानी सक्रिय",
+        "modules": "अपलिंक: सैटेलाइट · ड्रोन · ग्राउंड-सेंसर",
+        "section_image_input": "डेटा अधिग्रहण",
+        "section_command_center": "सामरिक कमान केंद्र",
+        "live_drone_feed": " ️ सामरिक ओवरवॉच",
+        "optics_lock": "लक्ष्य लॉक",
+        "spatial_analysis_matrix": "  सेक्टर-ग्रिड मैट्रिक्स",
+        "core_assessment": "रणनीतिक मूल्यांकन",
+        "sys_confidence": "सिस्टम_सटीकता",
+        "latency": "स्पंदन",
+        "critical_risk": "भेद्यता",
+        "struct_angle": "झुकाव",
+        "bio_coverage": "जैव-घनत्व",
+        "stem_vectors": "वेक्टर नोड्स",
+        "volatility_trend": "जोखिम अस्थिरता सूचकांक",
+        "ai_diagnostics": "👁️ न्यूरल डायग्नोस्टिक स्ट्रीम",
+        "ai_confidence": "न्यूरल अखंडता",
+        "upright_ratio": "स्थिरता सूचकांक",
+        "edge_density": "फ्रैंटल घनत्व",
+        "ai_plan": "रणनीतिक निर्देश",
+        "crop_stability_distribution": "संरचनात्मक अखंडता वक्र",
+        "Moderate Risk": "अलर्ट स्तर: पीला",
+        "Severe Danger": "अलर्ट स्तर: लाल",
+        "footer_text": "CropIQ क्वांटम इंजन · v4.1.0",
+        "upload_prompt": "सेंसर स्कैन शुरू करें (छवि चुनें)",
+        "tech_stack": "कोर स्टैक",
+        "detection_modes": "अवलोकन मोड",
+        "output_metrics": "सामरिक टेलीमेट्री",
+        "hsv_filter": "क्रोमा_मास्क",
+        "thermal_density": "थर्मल_हीटमैप",
+        "edge_topology": "टोपोलॉजिकल_स्कैन",
+        "structural_lattice": "संरचनात्मक_मेश",
+        "agrobot_header": "CropIQ अल्फा",
+        "weather_wind": "पवन वेग",
+        "weather_hum": "मिट्टी की नमी",
+        "weather_temp": "थर्मल इंडेक्स",
+        "analysis_depth": "न्यूरल स्कैनिंग गहराई",
+        "gen_report": "रणनीतिक रिपोर्ट तैयार करें",
+        "ai_briefing": "लाइव एआई ब्रीफिंग",
+        "emergency_support": "तत्काल: संरचनात्मक मजबूती की आवश्यकता।",
+        "emergency_text": "कुल फसल के नुकसान को रोकने के लिए महत्वपूर्ण क्षेत्रों में तत्काल यांत्रिक ब्रेसिंग तैनात करें।",
+        "nutrition_intervention": "मेटाबोलिक रीसेट।",
+        "nutrition_text": "नाइट्रोजन इनपुट को निलंबित करें; कोशिका भित्ति को सख्त करने के लिए कैल्शियम-मैग्नीशियम संक्रमण शुरू करें।",
+        "water_mgmt": "हाइड्रो-बायपास।",
+        "water_text": "जड़-लंगड़ सब्सट्रेट को स्थिर करने के लिए सेक्टर B3/C1 में सक्रिय जल निकासी की आवश्यकता है।",
+        "growth_reg": "विकास विनियमन।",
+        "growth_text": "तने-से-पत्ते के वजन अनुपात को अनुकूलित करने के लिए PGR अनुप्रयोग को संतुलित करें।",
+        "potassium_boost": "K-सुदृढ़ीकरण।",
+        "potassium_text": "ऑस्मोटिक दबाव और तने की कठोरता को बढ़ाने के लिए फोलियर के-स्प्रे निष्पादित करें।",
+        "observation_phase": "निगरानी चरण।",
+        "observation_text": "सेक्टर-विशिष्ट क्वाड्रंट्स में निरंतर ड्रोन-लूप निगरानी सक्रिय।",
+        "optimal_health": "इष्टतम स्वास्थ्य बना हुआ है।",
+        "optimal_text": "फसल मैट्रिक्स मजबूत ऊर्ध्वाधर विकास पैटर्न के साथ उत्कृष्ट संरचनात्मक अखंडता दिखाता है।",
+        "standard_nutrition": "मानक पोषण प्रोटोकॉल।",
+        "nutrition_continue": "मानक एनपीके उर्वरक कार्यक्रम जारी रखें। इस स्तर पर किसी बदलाव की आवश्यकता नहीं है।",
+        "preventive": "निवारक उपाय।",
+        "preventive_text": "द्वि-साप्ताहिक सिलिकेट उपचार लागू करें; यह भविष्य के तनाव से रक्षा करेगा।"
+    },
+    "Marathi (मराठी)": {
+        "page_title": "CropIQ - प्रगत कृषी-दृष्टी",
+        "app_name_p1": "Crop",
+        "app_name_p2": "IQ",
+        "hero_badge": "सामरिक बुद्धिमत्ता · CropIQ V4",
+        "hero_subtitle": "स्वायत्त क्षेत्र देखरेख आणि नुकसान मूल्यांकन",
+        "system_status": "देखरेख सक्रिय",
+        "modules": "अपलिंक: सॅटेलाईट · ड्रोन · ग्राउंड-सेन्सर",
+        "section_image_input": "डेटा संपादन",
+        "section_command_center": "सामरिक कमान केंद्र",
+        "live_drone_feed": " ️ सामरिक ओवरवॉच",
+        "optics_lock": "लक्ष्य लॉक",
+        "spatial_analysis_matrix": "  सेक्टर-ग्रिड मॅट्रिक्स",
+        "core_assessment": "रणनीतिक मूल्यांकन",
+        "sys_confidence": "सिस्टम_अचूकता",
+        "latency": "स्पंदन",
+        "critical_risk": "भेद्यता",
+        "struct_angle": "कल",
+        "bio_coverage": "जैव-घनता",
+        "stem_vectors": "वेक्टर नोड्स",
+        "volatility_trend": "जोखीम अस्थिरता निर्देशांक",
+        "ai_diagnostics": "👁️ न्यूरल डायग्नोस्टिक स्ट्रीम",
+        "ai_confidence": "न्यूरल अखंडता",
+        "upright_ratio": "स्थिरता निर्देशांक",
+        "edge_density": "फ्रॅक्टल घनता",
+        "ai_plan": "रणनीतिक निर्देश",
+        "crop_stability_distribution": "संरचनात्मक अखंडता वक्र",
+        "Moderate Risk": "अलर्ट लेव्हल: पिवळा",
+        "Severe Danger": "अलर्ट लेव्हल: लाल",
+        "footer_text": "CropIQ क्वांटम इंजिन · v4.1.0",
+        "upload_prompt": "सेन्सर स्कॅन सुरू करा (प्रतिमा निवडा)",
+        "tech_stack": "कोर स्टॅक",
+        "detection_modes": "निरीक्षण मोड",
+        "output_metrics": "सामरिक टेलीमेट्री",
+        "hsv_filter": "क्रोमा_मास्क",
+        "thermal_density": "थर्मल_हीटमॅप",
+        "edge_topology": "टोपोलॉजिकल_स्कॅन",
+        "structural_lattice": "संरचनात्मक_मेश",
+        "agrobot_header": "CropIQ अल्फा",
+        "weather_wind": "वाऱ्याचा वेग",
+        "weather_hum": "जमिनीतील ओलावा",
+        "weather_temp": "थर्मल इंडेक्स",
+        "analysis_depth": "न्यूरल स्कॅनिंग खोली",
+        "gen_report": "रणनीतिक अहवाल तयार करा",
+        "ai_briefing": "लाईव्ह एआय ब्रीफिंग",
+        "emergency_support": "तातडीचे: संरचनात्मक मजबूतीची आवश्यकता।",
+        "emergency_text": "पिकाचे एकूण नुकसान टाळण्यासाठी महत्त्वाच्या क्षेत्रांमध्ये त्वरित यांत्रिक ब्रेसिंग तैनात करा।",
+        "nutrition_intervention": "मेटाबॉलिक रिसेट।",
+        "nutrition_text": "नायट्रोजन इनपुट निलंबित करा; पेशींची भिंत कडक करण्यासाठी कॅल्शियम-मॅग्नेशियम इन्फ्यूजन सुरू करा।",
+        "water_mgmt": "हायड्रो-बायपास।",
+        "water_text": "मूळ-अँकरिंग सबस्ट्रेट्स स्थिर करण्यासाठी सेक्टर B3/C1 मध्ये सक्रिय ड्रेनेज आवश्यक आहे।",
+        "growth_reg": "वाढ नियमन।",
+        "growth_text": "तण-ते-पाने वजन गुणोत्तर ऑप्टिमाइझ करण्यासाठी PGR अनुप्रयोग संतुलित करा।",
+        "potassium_boost": "K-सबलीकरण।",
+        "potassium_text": "ऑस्मोटिक दाब आणि स्टेम रिजिडिटी वाढवण्यासाठी फोलियर के-स्प्रे कार्यान्वित करा।",
+        "observation_phase": "निरीक्षण टप्पा।",
+        "observation_text": "सेक्टर-विशिष्ट क्वाड्रंटमध्ये सतत ड्रोन-लूप मॉनिटरिंग सक्रिय।",
+        "optimal_health": "उत्कृष्ट आरोग्य राखले।",
+        "optimal_text": "पीक मॅट्रिक्स मजबूत उभ्या वाढीच्या नमुन्यांसह उत्कृष्ट संरचनात्मक अखंडता दर्शवते।",
+        "standard_nutrition": "मानक पोषण प्रोटोकॉल।",
+        "nutrition_continue": "मानक NPK खत वेळापत्रक सुरू ठेवा। या टप्प्यावर कोणत्याही बदलाची गरज नाही।",
+        "preventive": "प्रतिबंधात्मक उपाय।",
+        "crop_stability_distribution": "पीक स्थिरता वितरण",
+        "Moderate Risk": "मध्यम धोका",
+        "Severe Danger": "गंभीर धोका"
+    }
+}
+
+
+# ─────────────────────────────────────────────
+# Entry Point & Language Selection
+# ─────────────────────────────────────────────
+def t(key):
+    return TRANSLATIONS[st.session_state.get('lang', 'English')].get(key, key)
+
+if 'lang' not in st.session_state:
+    st.session_state.lang = 'English'
+
+# Page Config (Now dynamic)
+st.set_page_config(
+    page_title=t("page_title"),
+    page_icon="🌾",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Smooth Animation CSS Injection
+st.markdown("""
+<style>
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.smooth-entry {
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Top Language Toggle (Unavoidable)
+lang_col1, lang_col2 = st.columns([4, 1])
+with lang_col2:
+    selected_lang = st.selectbox(
+        "Language",
+        options=list(TRANSLATIONS.keys()),
+        key="lang_selector",
+        index=list(TRANSLATIONS.keys()).index(st.session_state.lang),
+        label_visibility="collapsed"
+    )
+    if selected_lang != st.session_state.lang:
+        st.session_state.lang = selected_lang
+        st.rerun()
+
+# ─────────────────────────────────────────────
+# CSS — DM Sans professional font
+# ─────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, [data-testid="stAppViewContainer"] {
+    background: #030407 !important;
+    color: #e0e7ff !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+[data-testid="stAppViewContainer"] {
+    background: 
+        radial-gradient(circle at 15% 0%, rgba(0, 122, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 100%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        #03050a !important;
+}
+
+#MainMenu, footer, header, [data-testid="stToolbar"] { visibility: hidden; }
+[data-testid="stDecoration"] { display: none; }
+
+.block-container {
+    padding: 2.5rem 3rem 5rem !important;
+    max-width: 1400px !important;
+}
+
+/* ── Glassmorphism Panels ── */
+.glass-panel {
+    background: rgba(10, 14, 25, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 122, 255, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* ── Hero ── */
+.hero-header {
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 2.5rem 0 2rem;
+    border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+    margin-bottom: 3rem;
+    position: relative;
+}
+.hero-header::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; width: 100px; height: 2px;
+    background: linear-gradient(90deg, #007aff, transparent);
+}
+.hero-badge {
+    background: transparent;
+    border: 1px solid #007aff;
+    color: #007aff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; font-weight: 600;
+    letter-spacing: 0.15em; padding: 0.4rem 0.8rem;
+    border-radius: 20px; text-transform: uppercase;
+    box-shadow: 0 0 12px rgba(0, 122, 255, 0.3);
+}
+.hero-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 3.5rem; font-weight: 800;
+    color: #ffffff; letter-spacing: -0.04em; line-height: 1.1;
+    text-shadow: 0 0 50px rgba(0, 122, 255, 0.5);
+}
+.hero-title span { 
+    background: linear-gradient(135deg, #00f0ff, #ff0055);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.3));
+}
+.hero-subtitle {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem; font-weight: 300;
+    color: #94a3b8; margin-top: 0.5rem;
+}
+.hero-right { margin-left: auto; text-align: right; }
+.system-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; color: #007aff; font-weight: 700;
+    letter-spacing: 0.1em;
+    display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;
+}
+.system-status::before { 
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    background: #007aff; box-shadow: 0 0 10px #007aff;
+    animation: pulse 2s infinite; 
+}
+@keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+
+/* ── Section headers ── */
+.section-header {
+    display: flex; align-items: center; gap: 1rem;
+    margin: 3rem 0 1.5rem;
+}
+.section-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; font-weight: 700; color: #007aff;
+    background: rgba(0, 122, 255, 0.15); border: 1px solid rgba(0, 122, 255, 0.3);
+    padding: 0.3rem 0.6rem; border-radius: 6px; letter-spacing: 0.1em;
+}
+.section-title {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 1.25rem; font-weight: 600; color: #ffffff !important;
+    letter-spacing: -0.01em;
+}
+.section-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(to right, rgba(30, 41, 59, 0.8), transparent);
+}
+
+/* ── Metric cards ── */
+.metric-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem; margin-bottom: 1.5rem;
+}
+.metric-card {
+    background: rgba(10, 15, 25, 0.5); 
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(30, 41, 59, 0.8);
+    border-radius: 14px; padding: 1.5rem;
+    position: relative; overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.metric-card:hover { 
+    border-color: rgba(0, 122, 255, 0.5); 
+    transform: translateY(-4px); 
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 122, 255, 0.15);
+}
+.metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #007aff, transparent);
+    opacity: 0.7; transition: opacity 0.3s;
+}
+.metric-card:hover::before { opacity: 1; }
+.metric-card.warning::before { background: linear-gradient(90deg, #facc15, transparent); }
+.metric-card.danger::before  { background: linear-gradient(90deg, #ff4757, transparent); }
+.metric-card.info::before    { background: linear-gradient(90deg, #6366f1, transparent); }
+
+.metric-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem; font-weight: 600;
+    color: #94a3b8 !important; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.5rem;
+}
+.metric-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.2rem; font-weight: 700; color: #ffffff;
+    line-height: 1.1; letter-spacing: -0.02em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.metric-card.warning .metric-value { color: #facc15; text-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
+.metric-card.danger  .metric-value { color: #ff4757; text-shadow: 0 0 15px rgba(255, 71, 87, 0.3); }
+.metric-card.info    .metric-value { color: #6366f1; text-shadow: 0 0 15px rgba(99, 102, 241, 0.3); }
+.metric-unit {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem; font-weight: 400; color: #64748b !important; margin-top: 0.2rem;
+}
+
+/* ── Result banner ── */
+.result-banner {
+    background: rgba(10, 15, 25, 0.6); 
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 122, 255, 0.25);
+    border-radius: 16px; padding: 2rem 2.5rem;
+    display: flex; align-items: center; gap: 2.5rem;
+    margin: 2rem 0; position: relative; overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+.result-banner::before {
+    content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+    background: #007aff;
+    box-shadow: 0 0 15px #007aff;
+}
+.result-banner.warning::before { background: #facc15; box-shadow: 0 0 15px #facc15; border-color: rgba(250, 204, 21, 0.2); }
+.result-banner.danger::before  { background: #ff4757; box-shadow: 0 0 15px #ff4757; border-color: rgba(255, 71, 87, 0.2); }
+
+.result-banner::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 90% 50%, rgba(0,122,255,0.1), transparent 50%);
+    pointer-events: none;
+}
+.result-banner.warning::after { background: radial-gradient(circle at 90% 50%, rgba(250,204,21,0.08), transparent 50%); }
+.result-banner.danger::after  { background: radial-gradient(circle at 90% 50%, rgba(255,71,87,0.08), transparent 50%); }
+
+.result-status-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem; font-weight: 600; color: #94a3b8 !important;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.result-status-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;
+}
+.result-banner.warning .result-status-value { color: #facc15; }
+.result-banner.danger  .result-status-value { color: #ff4757; }
+.result-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: #64748b !important;
+    margin-top: 0.8rem; letter-spacing: 0.05em;
+}
+.result-suggestion {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem; font-weight: 400;
+    color: #e2e8f0 !important; line-height: 1.8;
+    flex: 1; padding-left: 2.5rem; border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ── Progress bars ── */
+.progress-wrap {
+    background: rgba(10, 15, 25, 0.5); 
+    border: 1px solid rgba(30, 41, 59, 0.8);
+    border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    transition: transform 0.2s;
+}
+.progress-wrap:hover { transform: translateX(4px); border-color: rgba(0, 122, 255, 0.4); }
+
+.progress-label {
+    display: flex; justify-content: space-between;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem; font-weight: 500;
+    color: #e2e8f0 !important; margin-bottom: 0.75rem;
+}
+.progress-bar-bg {
+    height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.progress-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, #6366f1, #007aff); 
+/* ── Spatial Computing Grid ── */
+.spatial-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 1200px) {
+    .spatial-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+    .spatial-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Radar Scan Animation ── */
+.radar-scan-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+}
+.radar-scan-container::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(to bottom, transparent, rgba(0, 240, 255, 0.8), #00f0ff);
+    box-shadow: 0 5px 20px #00f0ff;
+    animation: scan 3s linear infinite;
+    pointer-events: none;
+    z-index: 10;
+}
+@keyframes scan {
+    0% { top: -10%; }
+    100% { top: 110%; }
+}
+
+/* ── Drone-View 3D Matrix ── */
+.drone-view-matrix {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    perspective: 1200px;
+}
+.drone-view-card {
+    transform: rotateX(10deg) rotateY(-5deg);
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-style: preserve-3d;
+    box-shadow: -10px 15px 30px rgba(0, 0, 0, 0.6);
+}
+.drone-view-card:hover {
+    transform: rotateX(0deg) rotateY(0deg) translateZ(20px);
+    box-shadow: 0 0 25px rgba(0, 122, 255, 0.4);
+}
+
+/* ── Glitch & Cyber Title ── */
+.cyber-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ff0055;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    position: relative;
+    display: inline-block;
+}
+.cyber-title::before, .cyber-title::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #030407;
+}
+.cyber-title::before {
+    left: 2px;
+    text-shadow: -1px 0 #00f0ff;
+    clip: rect(24px, 550px, 90px, 0);
+    animation: glitch-anim-2 3s infinite linear alternate-reverse;
+}
+.cyber-title::after {
+    left: -2px;
+    text-shadow: -1px 0 #ff0055;
+    clip: rect(85px, 550px, 140px, 0);
+    animation: glitch-anim 2.5s infinite linear alternate-reverse;
+}
+@keyframes glitch-anim {
+    0% { clip: rect(35px, 9999px, 83px, 0); }
+    20% { clip: rect(74px, 9999px, 66px, 0); }
+    40% { clip: rect(22px, 9999px, 54px, 0); }
+    60% { clip: rect(100px, 9999px, 3px, 0); }
+    80% { clip: rect(52px, 9999px, 91px, 0); }
+    100% { clip: rect(11px, 9999px, 99px, 0); }
+}
+@keyframes glitch-anim-2 {
+    0% { clip: rect(65px, 9999px, 100px, 0); }
+    20% { clip: rect(11px, 9999px, 78px, 0); }
+    40% { clip: rect(89px, 9999px, 21px, 0); }
+    60% { clip: rect(14px, 9999px, 87px, 0); }
+    80% { clip: rect(44px, 9999px, 31px, 0); }
+    100% { clip: rect(96px, 9999px, 55px, 0); }
+}
+
+
+/* ── AI Action Plan Section ── */
+.ai-advisor-panel {
+    background: linear-gradient(145deg, rgba(10, 15, 25, 0.9), rgba(15, 23, 42, 0.9));
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    border-radius: 4px;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 240, 255, 0.1) inset;
+    margin-top: 1rem;
+}
+.ai-advisor-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #ff0055, #00f0ff);
+    box-shadow: 0 0 15px #00f0ff;
+}
+.ai-advisor-header {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.25); padding-bottom: 1rem;
+}
+.ai-advisor-icon {
+    font-size: 1.8rem;
+    background: rgba(0, 240, 255, 0.15); width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+}
+.ai-advisor-title {
+    font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 700;
+    color: #ffffff; letter-spacing: -0.01em;
+}
+.ai-advisor-title span { color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.5); }
+.ai-action-item {
+    display: flex; gap: 1rem; margin-bottom: 1.25rem;
+    background: rgba(0, 0, 0, 0.5); padding: 1rem 1.5rem;
+    border-radius: 6px; border-left: 3px solid #00f0ff;
+    transition: all 0.2s;
+}
+.ai-action-item:hover { 
+    transform: translateX(5px); 
+    background: rgba(0, 240, 255, 0.1); 
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+}
+.ai-action-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700;
+    color: #ff0055;
+}
+.ai-action-text {
+    font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 400;
+    color: #e2e8f0; line-height: 1.6;
+}
+
+/* ── Weather & Tactical Matrix ── */
+.weather-card {
+    background: rgba(10, 15, 25, 0.4);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.weather-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.weather-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #00f0ff;
+}
+
+/* ── Typewriter Effect ── */
+.typewriter-text {
+    overflow: hidden;
+    border-right: .15em solid #ff0055;
+    white-space: nowrap;
+    margin: 0 auto;
+    letter-spacing: .05em;
+    animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+}
+@keyframes typing { from { width: 0 } to { width: 100% } }
+@keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: #ff0055; } }
+
+/* ── Strategic Button ── */
+.stButton>button {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(255, 0, 85, 0.1)) !important;
+    border: 1px solid rgba(0, 240, 255, 0.5) !important;
+    color: #00f0ff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    transition: all 0.3s !important;
+    border-radius: 4px !important;
+    width: 100%;
+}
+.stButton>button:hover {
+    background: rgba(0, 240, 255, 0.2) !important;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+    transform: translateY(-2px);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+# Hero Header
+# ─────────────────────────────────────────────
+st.markdown(f"""
+<div class="hero-header smooth-entry">
+    <div>
+        <div class="hero-badge">{t("hero_badge")}</div>
+        <div class="hero-title">{t("app_name_p1")}<span>{t("app_name_p2")}</span></div>
+        <div class="hero-subtitle">{t("hero_subtitle")}</div>
+    </div>
+    <div class="hero-right">
+        <div class="system-status">{t("system_status")}</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:0.75rem;color:#007aff;margin-top:0.3rem;">
+            {t("modules")}
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+# Upload
+# ─────────────────────────────────────────────
+st.markdown(f"""
+<div class="section-header smooth-entry">
+    <div class="section-number">01</div>
+    <div class="section-title">{t("section_image_input")}</div>
+    <div class="section-line"></div>
+</div>
+""", unsafe_allow_html=True)
+
+uploaded_file = st.file_uploader(
+    t("section_image_input"), type=["jpg", "jpeg", "png"],
+    help="Supports JPG, JPEG, PNG.", label_visibility="collapsed"
+)
+
+# ─────────────────────────────────────────────
+# Analysis
+# ─────────────────────────────────────────────
+if uploaded_file is not None:
+
+    image = Image.open(uploaded_file)
+    image = np.array(image)
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    elif image.shape[2] == 4:
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+    else:
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    image = resize_image(image)
+
+    # ── Command Center V3 Spatial Grid ──
+    st.markdown(f"""
+    <div class="section-header smooth-entry">
+        <div class="section-number">02</div>
+        <div class="section-title">{t("section_command_center")}</div>
+        <div class="section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.spinner(t("Initializing Drone Surveillance Grid...")):
+        t_start = time.time()
+        veg_mask, veg_density, veg_overlay, edges_colored, stem_img, result, suggestion, confidence, metrics = analyze_crop(image)
+        process_time = round((time.time() - t_start) * 1000, 1)
+
+    r          = metrics["result"]
+    res_label  = r["label"]
+    
+    # Map high-level result labels for localized display
+    LOCALIZED_RESULTS = {
+        "Healthy Crop": {"English": "Healthy Crop", "Hindi (हिंदी)": "स्वस्थ फसल", "Marathi (मराठी)": "निरोगी पीक"},
+        "Moderate Lodging": {"English": "Moderate Risk", "Hindi (हिंदी)": "मध्यम जोखिम", "Marathi (मराठी)": "मध्यम धोका"},
+        "Severe Lodging": {"English": "Severe Danger", "Hindi (हिंदी)": "गंभीर खतरा", "Marathi (मराठी)": "गंभीर धोका"}
+    }
+    display_label = LOCALIZED_RESULTS.get(res_label, {}).get(selected_lang, res_label)
+    
+    avg_angle  = r.get("avg_angle")
+    risk_score = r.get("risk_score", 0)
+    angle_display = f"{avg_angle}°" if avg_angle is not None else "N/A"
+    risk_display  = f"{risk_score}%" if risk_score is not None else "N/A"
+    banner_class = "warning" if "Moderate" in res_label else ("danger" if "Severe" in res_label else "")
+
+    veg   = metrics["vegetation"]
+    edges = metrics["edges"]
+    stems = metrics["stems"]
+
+    conf_class  = "danger" if confidence < 50 else ("warning" if confidence < 75 else "")
+    risk_class  = "danger" if (risk_score or 0) > 65 else ("warning" if (risk_score or 0) > 35 else "")
+    angle_class = "danger" if (avg_angle or 90) < 40 else ("warning" if (avg_angle or 90) < 70 else "")
+
+    # Create the 3-column layout
+    col_left, col_center, col_right = st.columns([1, 1.2, 1], gap="large")
+
+    # ── LEFT PANEL : The Feed (Radar Scan) ──
+    with col_left:
+        st.markdown(f'<div class="panel-title" style="color:#00f0ff!important;">{t("live_drone_feed")}</div>', unsafe_allow_html=True)
+        # Apply the scanning radar CSS class
+        st.markdown('<div class="radar-scan-container">', unsafe_allow_html=True)
+        st.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        h, w = image.shape[:2]
+        st.markdown(f"""
+        <div style="margin-top:1rem;">
+            <div class="progress-wrap" style="padding:1rem;">
+                <div class="metric-label" style="font-size:0.65rem;">{t("optics_lock")}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:1rem;color:#00f0ff;">{w}x{h} px</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f'<div class="panel-title" style="color:#00f0ff!important;margin-top:2rem;">{t("spatial_analysis_matrix")}</div>', unsafe_allow_html=True)
+        # Implement the 3D drone-view matrix 
+        import base64
+        from io import BytesIO
+
+        def img_to_b64(img_array):
+            pil_img = Image.fromarray(cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB))
+            buff = BytesIO()
+            pil_img.save(buff, format="JPEG")
+            return base64.b64encode(buff.getvalue()).decode("utf-8")
+
+        res_b64 = img_to_b64(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        mask_b64 = img_to_b64(veg_mask)
+        dens_b64 = img_to_b64(veg_density)
+        edge_b64 = img_to_b64(edges_colored)
+        stem_b64 = img_to_b64(stem_img)
+
+        st.markdown(f"""
+        <div class="drone-view-matrix">
+            <div class="drone-view-card"><img src="data:image/jpeg;base64,{mask_b64}" style="width:100%; border-radius:8px; border:1px solid #00f0ff;"><div style="text-align:center;font-size:10px;color:#00f0ff;margin-top:4px;">{t("hsv_filter")}</div></div>
+            <div class="drone-view-card"><img src="data:image/jpeg;base64,{dens_b64}" style="width:100%; border-radius:8px; border:1px solid #ff0055;"><div style="text-align:center;font-size:10px;color:#ff0055;margin-top:4px;">{t("thermal_density")}</div></div>
+            <div class="drone-view-card"><img src="data:image/jpeg;base64,{edge_b64}" style="width:100%; border-radius:8px; border:1px solid #00f0ff;"><div style="text-align:center;font-size:10px;color:#00f0ff;margin-top:4px;">{t("edge_topology")}</div></div>
+            <div class="drone-view-card"><img src="data:image/jpeg;base64,{stem_b64}" style="width:100%; border-radius:8px; border:1px solid #ff0055;"><div style="text-align:center;font-size:10px;color:#ff0055;margin-top:4px;">{t("structural_lattice")}</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    # ── CENTER PANEL : The Core (Risk Index & Gauges) ──
+    with col_center:
+        st.markdown(f'<div class="panel-title" style="color:#ffffff!important;text-align:center;font-size:1.1rem;">{t("core_assessment")}</div>', unsafe_allow_html=True)
+        
+        # Central Danger/Status Banner
+        st.markdown(f"""
+        <div class="result-banner {banner_class}" style="margin: 0 0 1.5rem 0; padding:1.5rem; text-align:center; display:block;">
+            <div class="cyber-title" style="font-size:2rem;" data-text="{display_label}">{display_label}</div>
+            <div class="result-meta" style="font-size:0.85rem; margin-top:0.5rem;">{t("sys_confidence")}: {confidence}% &nbsp;|&nbsp; {t("latency")}: {process_time}ms</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 3x2 Grid for key metrics right below the main status
+        st.markdown(f"""
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+            <div class="metric-card {risk_class}" style="padding:1rem;">
+                <div class="metric-label">{t("critical_risk")}</div>
+                <div class="metric-value" style="font-size:1.8rem;">{risk_score or 0}%</div>
+            </div>
+            <div class="metric-card {angle_class}" style="padding:1rem;">
+                <div class="metric-label">{t("struct_angle")}</div>
+                <div class="metric-value" style="font-size:1.8rem;">{angle_display}</div>
+            </div>
+            <div class="metric-card info" style="padding:1rem;">
+                <div class="metric-label">{t("bio_coverage")}</div>
+                <div class="metric-value" style="font-size:1.8rem;">{veg.get('coverage_pct', 0)}%</div>
+            </div>
+            <div class="metric-card" style="padding:1rem;">
+                <div class="metric-label">{t("stem_vectors")}</div>
+                <div class="metric-value" style="font-size:1.8rem;">{stems.get('line_count', 0)}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Embed the synthetic plot
+        current_risk = risk_score or 0
+        import random
+        random.seed(int(current_risk * 100)) 
+        trend_data = []
+        temp_val = current_risk
+        for _ in range(30):
+            trend_data.append(max(0, min(100, temp_val)))
+            temp_val += random.uniform(-8, 8) 
+        trend_data.reverse()
+        x_data = list(range(1, 31))
+
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Scatter(
+            x=x_data, y=trend_data, mode='lines',
+            line={"color": '#00f0ff', "width": 3, "shape": 'spline'},
+            fill='tozeroy', fillcolor='rgba(0, 240, 255, 0.15)', hoverinfo='none'
+        ))
+        fig_trend.add_trace(go.Scatter(
+            x=[30], y=[current_risk], mode='markers+text',
+            marker={"color": '#ffffff', "size": 10, "line": {"color": '#00f0ff', "width": 3}},
+            text=[f"{current_risk:.1f}%"], textposition="top left",
+            textfont={"color": "#00f0ff", "size": 15, "family": "JetBrains Mono", "weight": "bold"}, hoverinfo='skip'
+        ))
+        fig_trend.update_layout(
+            height=200, showlegend=False, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            margin={"l": 0, "r": 20, "t": 10, "b": 0},
+            xaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
+            yaxis={"showgrid": True, "gridcolor": "rgba(30, 41, 59, 0.4)", "zeroline": False, "range": [0, 105], "side": "right"}
+        )
+        st.markdown(f'<div class="panel" style="padding:1rem;"><div class="metric-label" style="color:#00f0ff!important;margin-bottom:0;">{t("volatility_trend")}</div>', unsafe_allow_html=True)
+        st.plotly_chart(fig_trend, use_container_width=True, config={'displayModeBar': False})
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+    # ── RIGHT PANEL : The AI Brain ──
+    with col_right:
+        st.markdown(f'<div class="panel-title" style="color:#ff0055!important;">{t("ai_diagnostics")}</div>', unsafe_allow_html=True)
+        
+        # AI Live Briefing (Typewriter)
+        st.markdown(f'<div class="panel-title" style="margin-top:1.5rem;">{t("ai_briefing")}</div>', unsafe_allow_html=True)
+        briefing_text = f"{t('ai_diagnostics')}: {display_label} detected at {confidence}% confidence. Sector mapping active."
+        st.markdown(f"""
+        <div class="weather-card" style="border-color:#ff0055; background:rgba(255,0,85,0.05);">
+            <div style="font-family:'JetBrains Mono'; font-size:0.8rem; color:#ff0055;">> EXEC_SYS_BRIEFING...</div>
+            <div class="typewriter-text" style="font-family:'Outfit'; font-size:0.9rem; color:#ffffff; white-space:normal;">
+                {briefing_text}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Progress Bars (Signal Strength)
+        conf_bar_class = "danger" if confidence < 50 else ("warning" if confidence < 75 else "info")
+        risk_bar_class = "danger" if (risk_score or 0) > 65 else ("warning" if (risk_score or 0) > 35 else "info")
+        veg_bar  = min(100, veg.get("coverage_pct", 0))
+        vert_bar = stems.get("vertical_pct", 0)
+
+        st.markdown(f"""
+        <div class="progress-wrap" style="padding:1rem;">
+            <div class="progress-label" style="font-size:0.75rem;"><span>{t("ai_confidence")}</span><span style="color:#00f0ff;">{confidence}%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill {conf_bar_class}" style="width:{confidence}%"></div></div>
+        </div>
+        <div class="progress-wrap" style="padding:1rem;">
+            <div class="progress-label" style="font-size:0.75rem;"><span>{t("upright_ratio")}</span><span style="color:#00f0ff;">{vert_bar}%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill info" style="width:{vert_bar}%"></div></div>
+        </div>
+        <div class="progress-wrap" style="padding:1rem;">
+            <div class="progress-label" style="font-size:0.75rem;"><span>{t("edge_density")}</span><span style="color:#00f0ff;">{edges.get('edge_density_pct', 0)}%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill info" style="width:{edges.get('edge_density_pct', 0)}%"></div></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Tactical Grid Overlay Logic ──
+    def apply_tactical_grid(img_b64):
+        import base64
+        import io
+        from PIL import Image, ImageDraw, ImageFont
+        
+        img_data = base64.b64decode(img_b64)
+        img = Image.open(io.BytesIO(img_data)).convert("RGB")
+        draw = ImageDraw.Draw(img)
+        w, h = img.size
+        
+        # Draw grid lines
+        grid_color = (0, 240, 255, 120)
+        for i in range(1, 4):
+            # Vertical
+            x = (w // 4) * i
+            draw.line([(x, 0), (x, h)], fill=grid_color, width=1)
+            # Horizontal
+            y = (h // 4) * i
+            draw.line([(0, y), (w, y)], fill=grid_color, width=1)
+            
+        # Add Coordinate Labels (A1-D4)
+        try: font = ImageFont.truetype("arial.ttf", 20)
+        except: font = ImageFont.load_default()
+        
+        for r in range(4):
+            for c in range(4):
+                label = f"{chr(65+c)}{r+1}"
+                lx = (w // 4) * c + 5
+                ly = (h // 4) * r + 5
+                draw.text((lx, ly), label, fill=(0, 240, 255), font=font)
+                
+        # Save back to b64
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=90)
+        return base64.b64encode(buf.getvalue()).decode()
+
+    # Apply grid to main result image
+    tactical_b64 = apply_tactical_grid(res_b64)
+
+    # ─────────────────────────────────────────────
+    # 02 Command Center V3 Spatial Grid
+    # ─────────────────────────────────────────────
+    st.markdown(f"""
+    <div class="section-header smooth-entry">
+        <div class="section-number">02</div>
+        <div class="section-title">{t("section_command_center")}</div>
+        <div class="section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # UI Controls Row (Sensitivity & Report)
+    ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 2, 1])
+    with ctrl_col1:
+        st.markdown(f'<div class="panel-title">{t("analysis_depth")}</div>', unsafe_allow_html=True)
+        scan_depth = st.select_slider(
+            "Scanning Precision",
+            options=["Standard", "Advanced", "Deep Neural", "Quantum"],
+            value="Advanced",
+            label_visibility="collapsed"
+        )
+    with ctrl_col2:
+        st.markdown(f'<div class="panel-title">{t("weather_temp")}</div>', unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="weather-card">
+            <div class="weather-stat"><span>{t("weather_wind")}</span><span class="weather-val">14.2 km/h</span></div>
+            <div class="weather-stat"><span>{t("weather_hum")}</span><span class="weather-val">64% RH</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+    with ctrl_col3:
+        st.markdown(f'<div class="panel-title">Report</div>', unsafe_allow_html=True)
+        if st.button(t("gen_report")):
+            st.toast("Generating Strategic Compliance Report...", icon="📄")
+
+    st.markdown('<div class="spatial-grid">', unsafe_allow_html=True)
+    
+    # Left Column: Drone Feed
+    col_left, col_center, col_right = st.columns([1, 1.2, 1])
+    
+    with col_left:
+        st.markdown(f'<div class="panel-title">{t("live_drone_feed")}</div>', unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="radar-scan-container">
+            <img src="data:image/jpeg;base64,{tactical_b64}" style="width:100%; display:block;">
+            <div style="position:absolute; top:10px; right:10px; color:#00f0ff; font-family:'JetBrains Mono'; font-size:10px;">{t("optics_lock")}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        current_risk = risk_score or 0
+        
+        # Generate synthetic historical data trending towards current risk
+        import random
+        # Use a localized random instance or seed to keep it stable per run, or just let it be dynamic
+        random.seed(int(current_risk * 100)) 
+        
+        trend_data = []
+        temp_val = current_risk
+        for _ in range(30):
+            trend_data.append(max(0, min(100, temp_val)))
+            # Random walk backwards
+            temp_val += random.uniform(-8, 8) 
+            
+        trend_data.reverse()
+        x_data = list(range(1, 31))
+
+        fig_trend = go.Figure()
+
+        # Add the stock-like glowing area chart
+        fig_trend.add_trace(go.Scatter(
+            x=x_data,
+            y=trend_data,
+            mode='lines',
+            line={"color": '#007aff', "width": 3, "shape": 'spline'},
+            fill='tozeroy',
+            fillcolor='rgba(0, 122, 255, 0.15)',
+            hoverinfo='y',
+            name="Risk Trend"
+        ))
+        
+        # Add the current value point (like a pulsating indicator on a trading app)
+        fig_trend.add_trace(go.Scatter(
+            x=[30],
+            y=[current_risk],
+            mode='markers+text',
+            marker={"color": '#ffffff', "size": 10, "line": {"color": '#007aff', "width": 3}},
+            text=[f"Current: {current_risk:.1f}%"],
+            textposition="top left",
+            textfont={"color": "#007aff", "size": 15, "family": "Outfit", "weight": "bold"},
+            hoverinfo='skip'
+        ))
+
+        fig_trend.update_layout(
+            height=360,
+            showlegend=False,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font={"color": "#94a3b8", "family": "Outfit"},
+            margin={"l": 0, "r": 20, "t": 20, "b": 0},
+            xaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
+            yaxis={"showgrid": True, "gridcolor": "rgba(30, 41, 59, 0.8)", "zeroline": False, "range": [0, 105], "side": "right"}
+        )
+
+        st.plotly_chart(fig_trend, use_container_width=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── PIE CHART : Crop Stability ──
+    chart_col1, chart_col2 = st.columns(2)
+    with chart_col1:
+        st.markdown(f'<div class="panel">', unsafe_allow_html=True)
+        st.markdown(f'<div class="panel-title">{t("volatility_trend")}</div>', unsafe_allow_html=True)
+        # Note: Volatility trend was already in col_left in the user's manual edit, 
+        # but let's re-align to a 2-column layout for charts if that's the intent.
+        # Actually, let's just make sure chart_col2 works.
+
+    with chart_col2:
+        st.markdown(f"""
+        <div class="panel">
+            <div class="panel-title">🥧 {t("crop_stability_distribution")}</div>
+        """, unsafe_allow_html=True)
+
+        # Re-creating pie chart to fit the language might be needed if we want labels translated 
+        # but let's keep it simple for now or translate labels if possible.
+        
+        fig_pie = go.Figure(data=[go.Pie(
+            labels=[t("upright_ratio"), t("critical_risk")],
+            values=[vert_bar, current_risk],
+            hole=.6,
+            marker_colors=['#00f0ff', '#ff0055'],
+            textinfo='label+percent',
+            hoverinfo='label+value',
+            textfont={"color": "#ffffff", "family": "Outfit"}
+        )])
+
+        fig_pie.update_layout(
+            height=360,
+            plot_bgcolor="rgba(10, 15, 25, 0)",
+            paper_bgcolor="rgba(10, 15, 25, 0)",
+            font={"color": "#e2e8f0", "family": "Outfit"},
+            margin={"l": 10, "r": 10, "t": 40, "b": 10}
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    # ─────────────────────────────────────────────
+    # 09 AI Crop Advisor (Hackathon Feature)
+    # ─────────────────────────────────────────────
+
+    st.markdown(f"""
+    <div class="ai-advisor-panel smooth-entry">
+        <div class="ai-advisor-header">
+            <div class="ai-advisor-icon">🤖</div>
+            <div class="ai-advisor-title">{t("agrobot_header")} <span>{t("ai_plan")}</span></div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Generate dynamic advice based on risk level
+    risk_level = risk_score or 0
+    
+    if risk_level > 65:
+        st.markdown(f"""
+        <div class="ai-action-item">
+            <div class="ai-action-num">01.</div>
+            <div class="ai-action-text"><strong>{t("emergency_support")}</strong> {t("emergency_text")}</div>
+        </div>
+        <div class="ai-action-item">
+            <div class="ai-action-num">02.</div>
+            <div class="ai-action-text"><strong>{t("nutrition_intervention")}</strong> {t("nutrition_text")}</div>
+        </div>
+        <div class="ai-action-item">
+            <div class="ai-action-num">03.</div>
+            <div class="ai-action-text"><strong>{t("water_mgmt")}</strong> {t("water_text")}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif risk_level > 35:
+        st.markdown(f"""
+        <div class="ai-action-item">
+            <div class="ai-action-num">01.</div>
+            <div class="ai-action-text"><strong>{t("growth_reg")}</strong> {t("growth_text")}</div>
+        </div>
+        <div class="ai-action-item">
+            <div class="ai-action-num">02.</div>
+            <div class="ai-action-text"><strong>{t("potassium_boost")}</strong> {t("potassium_text")}</div>
+        </div>
+        <div class="ai-action-item">
+            <div class="ai-action-num">03.</div>
+            <div class="ai-action-text"><strong>{t("observation_phase")}</strong> {t("observation_text")}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="ai-action-item">
+            <div class="ai-action-num">01.</div>
+            <div class="ai-action-text"><strong>{t("optimal_health")}</strong> {t("optimal_text")}</div>
+        </div>
+        <div class="ai-action-item">
+            <div class="ai-action-num">02.</div>
+            <div class="ai-action-text"><strong>{t("standard_nutrition")}</strong> {t("nutrition_continue")}</div>
+        </div>
+        <div class="ai-action-item">
+            <div class="ai-action-num">03.</div>
+            <div class="ai-action-text"><strong>{t("preventive")}</strong> {t("preventive_text")}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="footer">
+        <strong>CropGuard AI</strong> &nbsp;·&nbsp; {t("hero_subtitle")}
+        <span>{t("modules")}</span>
+        <span>{t("latency")}: {process_time} ms</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+else:
+    st.markdown(f"""
+    <div style="text-align:center;padding:4.5rem 2rem;border:1.5px dashed rgba(0,240,255,0.3);border-radius:12px;background:rgba(10,15,25,0.5);backdrop-filter:blur(10px);">
+        <div style="font-size:2.8rem;margin-bottom:0.75rem;">🌾</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:600;color:#ffffff;margin-bottom:0.6rem;letter-spacing:-0.01em;">
+            {t("upload_prompt")}
+        </div>
+        <div style="font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:400;color:#94a3b8;line-height:2;">
+            {t("hero_subtitle")}<br>
+            {t("modules")}<br>
+        </div>
+    </div>
+    <div style="margin-top:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+        <div class="panel">
+            <div class="panel-title">{t("tech_stack")}</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:0.88rem;color:#94a3b8;line-height:1.8;">OpenCV · Hough Lines · HSV Masking · Canny Edge Detection</div>
+        </div>
+        <div class="panel">
+            <div class="panel-title">{t("detection_modes")}</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:0.88rem;color:#94a3b8;line-height:1.8;">{t("optimal_health")} · {t("Moderate Risk")} · {t("Severe Danger")}</div>
+        </div>
+        <div class="panel">
+            <div class="panel-title">{t("output_metrics")}</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:0.88rem;color:#94a3b8;line-height:1.8;">{t("struct_angle")} · {t("critical_risk")} · {t("bio_coverage")} · {t("ai_confidence")}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)

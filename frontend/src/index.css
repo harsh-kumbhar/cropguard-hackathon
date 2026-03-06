@@ -1,18 +1,39 @@
-/* frontend/src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html, body {
-    margin: 0;
-    padding: 0;
     width: 100vw;
     min-height: 100vh;
-    background-color: #0e1117; /* Forces the dark theme everywhere */
-    overflow-x: hidden; /* Prevents annoying horizontal scrollbars */
+    background-color: #141414;
+    overflow-x: hidden;
+    font-family: 'DM Sans', sans-serif;
 }
 
 #root {
     width: 100%;
     min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3a5c35;
+    border-radius: 4px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

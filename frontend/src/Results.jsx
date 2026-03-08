@@ -89,16 +89,28 @@ const PipelineStep = ({ icon, label, detail }) => (
     </div>
 );
 
-const OHLCBar = ({ x, width, open, close, high, low, yScale }) => {
-    if (open == null || !yScale) return null;
+const OHLCBar = ({ x, width, open, close, high, low, background }) => {
+    // Recharts passes `background` (the chart area rect), not a yScale function.
+    // Use background to manually convert domain values [0,110] → pixel y-coordinates.
+    if (open == null || !background) return null;
+    const { y: chartY, height: chartH } = background;
+    const toY = (v) => chartY + chartH - (Math.max(0, Math.min(110, v)) / 110) * chartH;
     const color = close >= open ? C.green : C.lime;
     const cx = x + width / 2;
+    const yOpen  = toY(open);
+    const yClose = toY(close);
+    const yHigh  = toY(high);
+    const yLow   = toY(low);
     return (
         <g>
-            <line x1={cx} y1={yScale(high)} x2={cx} y2={yScale(low)} stroke={color} strokeWidth={1.5} />
-            <rect x={x + 1} y={Math.min(yScale(open), yScale(close))}
-                width={Math.max(1, width - 2)} height={Math.max(1, Math.abs(yScale(open) - yScale(close)))}
-                fill={color} rx={1} />
+            <line x1={cx} y1={yHigh} x2={cx} y2={yLow} stroke={color} strokeWidth={1.5} />
+            <rect
+                x={x + 1}
+                y={Math.min(yOpen, yClose)}
+                width={Math.max(1, width - 2)}
+                height={Math.max(1, Math.abs(yOpen - yClose))}
+                fill={color} rx={1}
+            />
         </g>
     );
 };
@@ -608,6 +620,7 @@ function Results({ data }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={card()}>
                         <SectionTitle icon="📷" label="Real Processed Vision Layers — from Backend" color={C.greenLt} />
+                        {console.log('[CropGuard Debug] processed_images:', imgs, '| keys:', Object.keys(imgs), '| mask len:', imgs.mask?.length, '| full data keys:', Object.keys(data || {}))}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
                             {[
                                 { src: imgs.mask, label: 'HSV Vegetation Mask', desc: 'inRange([30,40,40]→[90,255,255])', color: '#52c07a' },
@@ -684,9 +697,9 @@ function Results({ data }) {
                                     <ComposedChart data={ohlcData}>
                                         <XAxis dataKey="x" hide />
                                         <YAxis domain={[0, 110]} hide />
-                                        <Tooltip {...tt} formatter={(v, n) => [`${v}%`, n.toUpperCase()]} />
+                                        <Tooltip {...tt} formatter={(v, n) => n === 'trend' ? null : [`${v}%`, n.toUpperCase()]} />
                                         <Bar dataKey="close" isAnimationActive={false} maxBarSize={10} shape={<OHLCBar />} />
-                                        <Line type="monotone" dataKey="close" stroke="rgba(226,255,128,0.4)" strokeWidth={1} dot={false} />
+                                        <Line type="monotone" dataKey="close" name="trend" stroke="rgba(226,255,128,0.4)" strokeWidth={1} dot={false} legendType="none" />
                                     </ComposedChart>
                                 </ResponsiveContainer>
                             </div>
@@ -855,7 +868,7 @@ function Results({ data }) {
                         <SectionTitle icon="🔩" label="Full Technology Stack" color={C.orange} />
                         {[['Python 3.x', 'Runtime'], ['OpenCV (cv2)', 'Computer Vision'], ['NumPy', 'Array ops'],
                         ['Roboflow API', 'YOLOv8 Inference'], ['FastAPI', 'REST API'], ['React + Vite', 'Frontend'],
-                        ['Recharts', 'Data Viz'], ['Capacitor', 'Mobile Wrapper'], ['GCP / Local', 'Deployment']
+                        ['Recharts', 'Data Viz'], ['GCP / Local', 'Deployment']
                         ].map(([tech, role], i, arr) => (
                             <KVRow key={tech} label={role} value={tech} valueColor={C.orange} useMono last={i === arr.length - 1} />
                         ))}

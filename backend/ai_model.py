@@ -56,32 +56,79 @@ def _make_structural_mesh(image):
     """Hough line structural mesh (STRUCTURAL_MESH view)."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150)
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=40, minLineLength=30, maxLineGap=10)
+
+    lines = cv2.HoughLinesP(
+        edges, 1, np.pi / 180,
+        threshold=40,
+        minLineLength=30,
+        maxLineGap=10
+    )
+
     mesh = np.zeros_like(image)
+
     if lines is not None:
         for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(mesh, (x1, y1), (x2, y2), (255, 0, 85), 1)
-    return mesh
+            coords = np.asarray(line).reshape(-1)
 
+            if coords.size != 4:
+                continue
+
+            x1, y1, x2, y2 = map(int, coords)
+
+            cv2.line(
+                mesh,
+                (x1, y1),
+                (x2, y2),
+                (255, 0, 85),
+                1
+            )
+
+    return mesh
 
 def _count_stems_and_angle(image):
     """Count stem lines and compute average vertical angle."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(gray, 40, 120)
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=30, minLineLength=25, maxLineGap=8)
+
+    lines = cv2.HoughLinesP(
+        edges, 1, np.pi / 180,
+        threshold=30,
+        minLineLength=25,
+        maxLineGap=8
+    )
+
     if lines is None:
         return 0, 0, 90.0
-    angles = []
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1)))
-        angles.append(angle)
-    vertical_pct = round(sum(1 for a in angles if a > 60) / len(angles) * 100, 1)
-    avg_angle = round(float(np.mean(angles)), 1)
-    return len(lines), vertical_pct, avg_angle
 
+    angles = []
+
+    for line in lines:
+        coords = np.asarray(line).reshape(-1)
+
+        if coords.size != 4:
+            continue
+
+        x1, y1, x2, y2 = map(int, coords)
+
+        angle = abs(
+            np.degrees(
+                np.arctan2(y2 - y1, x2 - x1)
+            )
+        )
+
+        angles.append(angle)
+
+    if not angles:
+        return 0, 0, 90.0
+
+    vertical_pct = round(
+        sum(1 for a in angles if a > 60) / len(angles) * 100, 1
+    )
+
+    avg_angle = round(float(np.mean(angles)), 1)
+
+    return len(angles), vertical_pct, avg_angle
 
 def _apply_tactical_grid(image):
     """Overlay a 4×4 sector grid with A1–D4 coordinate labels."""
@@ -185,8 +232,15 @@ def process_crop_image(image_bytes):
             max_length = 0
             best_line = None
             for line in lines:
-                xA, yA, xB, yB = line[0]
+                coords = np.asarray(line).reshape(-1)
+
+                if coords.size != 4:
+                    continue
+
+                xA, yA, xB, yB = map(int, coords)
+
                 length = np.sqrt((xB - xA) ** 2 + (yB - yA) ** 2)
+
                 if length > max_length:
                     max_length = length
                     best_line = (xA, yA, xB, yB)

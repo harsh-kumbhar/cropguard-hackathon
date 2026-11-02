@@ -1,16 +1,31 @@
+import os
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()
 from ai_model import process_crop_image
 
 app = FastAPI(title="CropGuard AI API")
 
-# VERY IMPORTANT FOR HACKATHONS: Allow React to talk to this API
+##Frontend URL configured through environment variables
+
+frontend_url = os.getenv(
+"FRONTEND_URL",
+"http://localhost:5173"
+).rstrip("/")
+
+allowed_origins = [
+origin.strip().rstrip("/")
+for origin in frontend_url.split(",")
+if origin.strip()
+]
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+CORSMiddleware,
+allow_origins=allowed_origins,
+allow_credentials=True,
+allow_methods=["GET", "POST", "OPTIONS"],
+allow_headers=["*"],
 )
 
 @app.get("/")
@@ -19,10 +34,6 @@ def health_check():
 
 @app.post("/analyze")
 async def analyze_crop(file: UploadFile = File(...)):
-    # Read the image bytes from the uploaded file
     image_bytes = await file.read()
-    
-    # Send it to your isolated ML script
     result = process_crop_image(image_bytes)
-    
     return result

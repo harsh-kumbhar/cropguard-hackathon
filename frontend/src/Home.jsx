@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+const API_URL = (
+    import.meta.env.VITE_API_URL || 'http://localhost:8000'
+).replace(/\/$/, '');
 
 function Home({ setAnalysisData }) {
     const [loading, setLoading] = useState(false);
@@ -15,9 +18,10 @@ function Home({ setAnalysisData }) {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const response = await axios.post('http://localhost:8000/analyze', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const response = await axios.post(
+                `${API_URL}/analyze`,
+                formData
+            );
             setAnalysisData(response.data);
             navigate('/results');
         } catch (err) {

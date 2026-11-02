@@ -5,12 +5,17 @@ import base64
 import time
 from PIL import Image, ImageDraw, ImageFont
 import io
+import os
 
-# Roboflow Configuration
-API_KEY = "nnY4KgvEnxAv65vf8jFC"
+# Load Roboflow API key from environment variables
+API_KEY = os.getenv("ROBOFLOW_API_KEY", "")
+
 MODEL_ID = "stem-project-7z7kd/8"
-INFERENCE_URL = f"https://detect.roboflow.com/{MODEL_ID}?api_key={API_KEY}"
 
+INFERENCE_URL = (
+    f"https://detect.roboflow.com/{MODEL_ID}"
+    f"?api_key={API_KEY}"
+)
 
 def _img_to_b64(img_bgr):
     """Convert a BGR numpy array to a base64 JPEG data URI string."""
